@@ -797,18 +797,26 @@
                     const dataLines = lines.slice(1); // Skip header row
                     
                     const newRecipes = dataLines.map(line => {
-                        // Handle both quoted and unquoted fields
-                        let fields = line.split(',').map(field => field.trim());
-                        
-                        // Remove quotes if present
-                        fields = fields.map(field => 
-                            field.replace(/^"(.*)"$/, '$1').replace(/""/g, '"')
-                        );
-                        
-                        const [title, url, ingredients] = fields;
-                        
-                        if (title && url) {
-                            return { title, url, ingredients: ingredients || '' };
+                        try {
+                            // Handle CSV parsing with quoted fields properly
+                            const matches = line.match(/(?:\"([^\"]*?)\")|(?:^|,)([^,\"]*?)(?:$|,)/g);
+                            if (!matches) return null;
+                            
+                            // Clean up the matched fields
+                            const fields = matches.map(field => 
+                                field.replace(/(^,|^"|"$)/g, '').replace(/""/g, '"')
+                            );
+
+                            // First field is title, second is URL, rest is ingredients
+                            const title = fields[0];
+                            const url = fields[1];
+                            const ingredients = fields.slice(2).join(',').trim();
+                            
+                            if (title && url) {
+                                return { title, url, ingredients };
+                            }
+                        } catch (e) {
+                            console.error('Error parsing line:', line, e);
                         }
                         return null;
                     }).filter(recipe => recipe !== null);
