@@ -792,20 +792,23 @@
             reader.onload = function(event) {
                 try {
                     const csvContent = event.target.result;
-                    const lines = csvContent.split('\n').filter(line => line.trim());
-                    const dataLines = lines.slice(1);
+                    // Split by newlines and remove empty lines and BOM if present
+                    const lines = csvContent.replace(/^\uFEFF/, '').split('\n').filter(line => line.trim());
+                    const dataLines = lines.slice(1); // Skip header row
                     
                     const newRecipes = dataLines.map(line => {
-                        // Parse CSV line considering quoted fields
-                        const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-                        if (!matches) return null;
+                        // Handle both quoted and unquoted fields
+                        let fields = line.split(',').map(field => field.trim());
                         
-                        const [title, url, ingredients] = matches.map(field => 
+                        // Remove quotes if present
+                        fields = fields.map(field => 
                             field.replace(/^"(.*)"$/, '$1').replace(/""/g, '"')
                         );
                         
+                        const [title, url, ingredients] = fields;
+                        
                         if (title && url) {
-                            return { title, url, ingredients };
+                            return { title, url, ingredients: ingredients || '' };
                         }
                         return null;
                     }).filter(recipe => recipe !== null);
